@@ -43,3 +43,23 @@ Empresas precisam de uma API de autenticação escalável, stateless e pronta pa
 ### Windows
 ```bash
 scripts\setup.bat
+
+📊 Diagrama de Arquitetura
+
+[Cliente] → [HTTPS] → [AWS EC2: Spring Boot]
+                         ↓
+                    [AWS RDS: PostgreSQL]
+                         ↓
+                    [ElastiCache: Redis]
+
+
+🧪 Testes Realizados
+
+Teste	Status
+Registro de usuário	✅
+Login com JWT	✅
+Refresh token	✅
+Rota protegida (/users/me)	✅
+Logout com revogação	✅
+Containerização com Docker	✅
+Documentação Swagger	✅

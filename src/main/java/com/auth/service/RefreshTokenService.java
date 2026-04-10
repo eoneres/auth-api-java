@@ -18,59 +18,68 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class RefreshTokenService {
-    
+
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserRepository userRepository;
     private final JwtService jwtService;
-    
+
     @Value("${jwt.refresh-expiration}")
     private Long refreshExpiration;
-    
+
     @Transactional
     public RefreshToken createRefreshToken(UUID userId) {
         LoggerUtil.info(RefreshTokenService.class, "Criando refresh token para user: {}", userId);
-        
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+
+        // 🔥 REMOVE O REFRESH TOKEN EXISTENTE ANTES DE CRIAR UM NOVO
+        Optional<RefreshToken> existingToken = refreshTokenRepository.findByUser(user);
+        if (existingToken.isPresent()) {
+            refreshTokenRepository.delete(existingToken.get());
+            LoggerUtil.debug(RefreshTokenService.class, "Refresh token antigo removido para user: {}", userId);
+        }
+
         RefreshToken refreshToken = RefreshToken.builder()
-                .user(userRepository.findById(userId).orElseThrow())
+                .user(user)
                 .token(UUID.randomUUID().toString())
                 .expiryDate(Instant.now().plusMillis(refreshExpiration))
                 .revoked(false)
                 .build();
-        
-        refreshTokenRepository.deleteByUser(refreshToken.getUser());
+
         return refreshTokenRepository.save(refreshToken);
     }
-    
+
     @Transactional
     public TokenResponse refreshAccessToken(String refreshTokenValue) {
         LoggerUtil.info(RefreshTokenService.class, "Renovando access token com refresh: {}", refreshTokenValue);
-        
+
         RefreshToken refreshToken = refreshTokenRepository.findByToken(refreshTokenValue)
                 .orElseThrow(() -> new RuntimeException("Refresh token não encontrado"));
-        
+
         if (refreshToken.isRevoked()) {
             throw new RuntimeException("Refresh token revogado");
         }
-        
+
         if (refreshToken.getExpiryDate().isBefore(Instant.now())) {
             throw new RuntimeException("Refresh token expirado");
         }
-        
+
         User user = refreshToken.getUser();
         String newAccessToken = jwtService.generateToken(user);
-        
+
         return TokenResponse.builder()
                 .accessToken(newAccessToken)
                 .refreshToken(refreshTokenValue)
                 .tokenType("Bearer")
-                .expiresIn(Instant.now().plusMillis(refreshExpiration).getEpochSecond())
+                .expiresIn(refreshToken.getExpiryDate().getEpochSecond())
                 .build();
     }
-    
+
     @Transactional
     public void revokeRefreshToken(String refreshTokenValue) {
         LoggerUtil.info(RefreshTokenService.class, "Revogando refresh token: {}", refreshTokenValue);
-        
+
         Optional<RefreshToken> refreshToken = refreshTokenRepository.findByToken(refreshTokenValue);
         refreshToken.ifPresent(token -> {
             token.setRevoked(true);

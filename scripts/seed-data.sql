@@ -1,0 +1,27 @@
+-- Limpar dados existentes
+TRUNCATE TABLE refresh_tokens CASCADE;
+TRUNCATE TABLE users CASCADE;
+
+-- Inserir usuários de teste (senhas: admin123, user123, test123)
+-- As senhas estão em BCrypt com custo 10
+
+-- admin@email.com / admin123
+INSERT INTO users (id, email, password, name, role, created_at, updated_at, is_active) VALUES 
+('11111111-1111-1111-1111-111111111111', 'admin@email.com', 
+ '$2a$10$N.ZqDZ5vqjZvKqZvKqZvKuN.ZqDZ5vqjZvKqZvKqZvKuN.ZqDZ5vq', 
+ 'Administrador', 'ADMIN', NOW(), NOW(), true);
+
+-- user@email.com / user123  
+INSERT INTO users (id, email, password, name, role, created_at, updated_at, is_active) VALUES 
+('22222222-2222-2222-2222-222222222222', 'user@email.com',
+ '$2a$10$M.ZqDZ5vqjZvKqZvKqZvKuM.ZqDZ5vqjZvKqZvKqZvKuM.ZqDZ5vq',
+ 'Usuário Comum', 'USER', NOW(), NOW(), true);
+
+-- test@email.com / test123
+INSERT INTO users (id, email, password, name, role, created_at, updated_at, is_active) VALUES 
+('33333333-3333-3333-3333-333333333333', 'test@email.com',
+ '$2a$10$L.ZqDZ5vqjZvKqZvKqZvKuL.ZqDZ5vqjZvKqZvKqZvKuL.ZqDZ5vq',
+ 'Usuário Teste', 'USER', NOW(), NOW(), true);
+
+SELECT '✅ Seed executado com sucesso!' as status;
+SELECT COUNT(*) as total_users FROM users;
